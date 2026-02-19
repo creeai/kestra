@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS namespace_variables (
+  "key" VARCHAR(500) NOT NULL PRIMARY KEY,
+  "value" TEXT NOT NULL
+);

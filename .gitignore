@@ -1,0 +1,10 @@
+# Root level
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+Thumbs.db
+
+# Kestra local runtime (H2)
+kestra/cli/data/

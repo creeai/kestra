@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS audit_log (
+    key VARCHAR(250) NOT NULL PRIMARY KEY,
+    value JSONB NOT NULL
+);

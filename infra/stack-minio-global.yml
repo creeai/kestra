@@ -1,0 +1,26 @@
+# MinIO global: one instance, one bucket per tenant.
+# Deploy: export MINIO_ROOT_PASSWORD=your_password; docker stack deploy -c stack-minio-global.yml infra
+
+version: "3.8"
+
+services:
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: adminminio
+      MINIO_ROOT_PASSWORD: changeme
+    volumes:
+      - minio_global_data:/data
+    networks:
+      - network_swarm_public
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  minio_global_data:
+
+networks:
+  network_swarm_public:
+    external: true

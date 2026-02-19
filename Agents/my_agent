@@ -1,0 +1,82 @@
+id: my_agente
+namespace: company.team
+
+tasks:
+  # 1. Busca configurações e instruções
+  - id: kv_openai
+    type: io.kestra.plugin.core.kv.Get
+    namespace: company.team
+    key: OPENAI_API_KEY
+
+  - id: prompt_instructions
+    type: io.kestra.plugin.core.kv.Get
+    namespace: company.team
+    key: INSTRUCTION_AGENT_CREEAI
+
+  # 2. Lógica de Buffer (Usa trigger.body se vier via Webhook, senão usa inputs)
+  - id: vars
+    type: io.kestra.plugin.core.debug.Return
+    format: "{{ trigger.body ?: inputs }}"
+
+  - id: get_buffer
+    type: io.kestra.plugin.core.kv.Get
+    key: "BUFFER_{{ outputs.vars.value.memory_id }}"
+
+  - id: set_buffer
+    type: io.kestra.plugin.core.kv.Set
+    key: "BUFFER_{{ outputs.vars.value.memory_id }}"
+    value: "{{ (outputs.get_buffer.value ?: '') ~ '\n' ~ outputs.vars.value.prompt_user }}"
+
+  - id: set_last_exec
+    type: io.kestra.plugin.core.kv.Set
+    key: "LAST_EXEC_{{ outputs.vars.value.memory_id }}"
+    value: "{{ execution.id }}"
+
+  # 3. Aguarda o tempo de debounce
+  - id: wait_debounce
+    type: io.kestra.plugin.core.flow.Sleep
+    duration: PT10S
+
+  # 4. Verifica se esta ainda é a última mensagem do lote para este memory_id
+  - id: check_last_exec
+    type: io.kestra.plugin.core.kv.Get
+    key: "LAST_EXEC_{{ outputs.vars.value.memory_id }}"
+
+  - id: should_process
+    type: io.kestra.plugin.core.flow.If
+    condition: "{{ outputs.check_last_exec.value == execution.id }}"
+    then:
+      - id: get_final_buffer
+        type: io.kestra.plugin.core.kv.Get
+        key: "BUFFER_{{ outputs.vars.value.memory_id }}"
+
+      - id: lara_agent
+        type: io.kestra.plugin.ai.agent.AIAgent
+        systemMessage: |
+          Você é um assistente técnica/vendas Carla da CreeAI.
+          Use os dados da empresa em {{ outputs.prompt_instructions.value }} para responder os leads.
+        prompt: "{{ outputs.get_final_buffer.value }}"
+        provider:
+          type: io.kestra.plugin.ai.provider.OpenAI
+          apiKey: "{{ outputs.kv_openai.value }}"
+          modelName: gpt-4o-mini
+        memory:
+          type: io.kestra.plugin.ai.memory.KestraKVMemory
+          memoryId: "{{ outputs.vars.value.memory_id }}"
+
+      - id: clear_buffer
+        type: io.kestra.plugin.core.kv.Delete
+        key: "BUFFER_{{ outputs.vars.value.memory_id }}"
+
+inputs:
+  - id: prompt_user
+    type: STRING
+    defaults: "Ola tudo bem"
+  - id: memory_id
+    type: STRING
+    defaults: "5531989354137"
+
+triggers:
+  - id: webhook
+    type: io.kestra.plugin.core.trigger.Webhook
+    key: "creeai-webhook-secret"

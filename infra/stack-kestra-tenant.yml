@@ -1,0 +1,102 @@
+# Kestra OSS stack per tenant. Replicate per client/time.
+# Deploy: docker stack deploy -c stack-kestra-tenant.yml --with-registry-auth kestra_<TENANT>
+# Use .env with DOMAIN, POSTGRES_PASSWORD, S3_* for the tenant.
+
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: kestra
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - net_private
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+
+  kestra:
+    image: kestra/kestra:latest
+    environment:
+      KESTRA_CONFIGURATION: |
+        kestra:
+          server:
+            base-url: https://${DOMAIN}
+          repository:
+            type: postgres
+          queue:
+            type: postgres
+          jdbc:
+            url: jdbc:postgresql://postgres:5432/kestra
+            username: kestra
+            password: ${POSTGRES_PASSWORD}
+          storage:
+            type: s3
+            s3:
+              endpoint: ${S3_ENDPOINT}
+              bucket: ${S3_BUCKET}
+              region: ${S3_REGION}
+              accessKey: ${S3_ACCESS_KEY}
+              secretKey: ${S3_SECRET_KEY}
+              path-style-access: true
+    networks:
+      - net_private
+      - network_swarm_public
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.kestra.rule=Host(`${DOMAIN}`)"
+        - "traefik.http.routers.kestra.entrypoints=websecure"
+        - "traefik.http.services.kestra.loadbalancer.server.port=8080"
+
+  executor:
+    image: kestra/kestra:latest
+    command: ["server", "executor"]
+    environment:
+      KESTRA_CONFIGURATION: |
+        kestra:
+          repository:
+            type: postgres
+          queue:
+            type: postgres
+          jdbc:
+            url: jdbc:postgresql://postgres:5432/kestra
+            username: kestra
+            password: ${POSTGRES_PASSWORD}
+          storage:
+            type: s3
+            s3:
+              endpoint: ${S3_ENDPOINT}
+              bucket: ${S3_BUCKET}
+              region: ${S3_REGION}
+              accessKey: ${S3_ACCESS_KEY}
+              secretKey: ${S3_SECRET_KEY}
+              path-style-access: true
+    networks:
+      - net_private
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+
+networks:
+  network_swarm_public:
+    external: true
+  net_private:
+
+volumes:
+  pg_data:
