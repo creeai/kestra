@@ -42,9 +42,9 @@ services:
       - "9001:9001"
 
   kestra:
-    # Troca a imagem para a tua build (ex.: creeai/kestra:local ou ghcr.io/creeai/kestra:latest-with-plugins)
-    image: creeai/kestra:local
-    pull_policy: if_not_present
+    # Para usar a imagem do fork (RBAC, Audit Logs, etc.): build creeai/kestra:local e troque para image: creeai/kestra:local
+    image: kestra/kestra:latest
+    pull_policy: always
     stop_grace_period: 6m
     user: "root"
     command: server standalone

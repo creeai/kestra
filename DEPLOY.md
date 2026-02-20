@@ -1,94 +1,206 @@
-# Deploy (fork `creeai/kestra`)
+# Como subir esta aplicação (creeai/kestra)
 
-Este repositório é um fork do Kestra com funcionalidades OSS adicionais (RBAC/IAM, Audit Logs, Secrets UI, etc.).  
-Repo: `https://github.com/creeai/kestra`
+Comandos para subir a aplicação **igual ao Kestra original**: descarregar ficheiro e correr.  
+Repositório: **https://github.com/creeai/kestra**
 
-## O que o Kestra oficial oferece (referência)
+O `docker-compose.yml` do repositório usa por defeito **kestra/kestra:latest**, para que **os dois comandos abaixo funcionem logo** (sem precisar de construir imagem). Para usar a **versão do fork** (RBAC, Audit Logs, Secrets UI, etc.), construa a imagem `creeai/kestra:local` e altere no compose a linha da imagem — ver secção **«Usar a imagem do fork»**.
 
-- **Docker Compose (Postgres + Kestra)**: `https://raw.githubusercontent.com/kestra-io/kestra/develop/docker-compose.yml`
-- **Docker run (local/rápido)**: instruções no README oficial `https://raw.githubusercontent.com/kestra-io/kestra/develop/README.md`
-- **Templates cloud**:
-  - AWS CloudFormation (link no README oficial)
-  - GCP Terraform module: `https://github.com/kestra-io/deployment-templates`
-- **Guia de instalação**: `https://kestra.io/docs/installation`
+---
 
-## Equivalente para este fork (o que usar em produção)
+## 1. Subir com Docker Compose (recomendado)
 
-### Opção A (recomendada): Docker Compose com a tua imagem
+### Linux / macOS
 
-1) **Descarregar o compose deste fork** (igual ao comando do Kestra oficial):
+**Descarregar o Docker Compose:**
 
 ```bash
 curl -o docker-compose.yml \
   https://raw.githubusercontent.com/creeai/kestra/main/docker-compose.yml
 ```
 
-2) **Editar a imagem** do serviço `kestra` para apontar para a tua build:
-
-- Se builds localmente no servidor:
-  - `image: creeai/kestra:local`
-- Se publicas no GHCR:
-  - `image: ghcr.io/creeai/kestra:latest-with-plugins` (exemplo)
-
-3) **Subir**:
+**Subir a aplicação:**
 
 ```bash
 docker compose up -d
+```
+
+**Verificar:**
+
+```bash
 docker compose ps
 ```
 
-### Opção B: Docker Swarm (stack)
+Aceder à UI: **http://localhost:8080** (ou http://\<IP-do-servidor\>:8080)
 
-1) **Descarregar a stack**:
+---
+
+### Windows (PowerShell)
+
+**Descarregar o Docker Compose:**
+
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/creeai/kestra/main/docker-compose.yml" -OutFile "docker-compose.yml"
+```
+
+**Subir a aplicação:**
+
+```powershell
+docker compose up -d
+```
+
+**Verificar:**
+
+```powershell
+docker compose ps
+```
+
+Aceder à UI: **http://localhost:8080**
+
+---
+
+### Usar a imagem do fork (creeai/kestra:local)
+
+Para correr a **versão modificada** (RBAC, Audit Logs, Secrets, etc.) em vez da imagem oficial:
+
+**No servidor (Linux) – construir a imagem e subir:**
+
+```bash
+git clone --depth 1 --branch main https://github.com/creeai/kestra.git /tmp/creeai-kestra
+cd /tmp/creeai-kestra/kestra
+./build-docker-with-plugins.sh creeai/kestra:local
+cd -
+curl -o docker-compose.yml https://raw.githubusercontent.com/creeai/kestra/main/docker-compose.yml
+sed -i 's|image: kestra/kestra:latest|image: creeai/kestra:local|' docker-compose.yml
+sed -i 's|pull_policy: always|pull_policy: if_not_present|' docker-compose.yml
+docker compose up -d
+```
+
+**No Windows – construir a imagem:**
+
+```powershell
+cd C:\Users\micha\Desktop\Kestra\kestra
+.\build-docker-with-plugins.ps1
+docker tag kestra/kestra:1.3.0-with-plugins creeai/kestra:local
+```
+
+No servidor: descarregar o compose, alterar para `image: creeai/kestra:local` e `pull_policy: if_not_present`, fazer push da imagem para um registry acessível ao servidor (ou construir a imagem no servidor com os comandos Linux acima) e depois `docker compose up -d`.
+
+---
+
+## 2. Subir com Docker Swarm (stack)
+
+**Descarregar a stack**
+
+Linux/macOS:
 
 ```bash
 curl -o stack-complete.yml \
   https://raw.githubusercontent.com/creeai/kestra/main/infra/stack-complete.yml
 ```
 
-2) **Inicializar Swarm** (se tiver mais de um IP, escolhe um):
+Windows (PowerShell):
+
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/creeai/kestra/main/infra/stack-complete.yml" -OutFile "stack-complete.yml"
+```
+
+**Inicializar o Swarm** (obrigatório na primeira vez; se tiver mais de um IP use `--advertise-addr <IP>`):
 
 ```bash
 docker swarm init --advertise-addr <IP_DO_MANAGER>
 ```
 
-3) **Deploy**:
+**Fazer deploy:**
 
 ```bash
 docker stack deploy -c stack-complete.yml kestra
+```
+
+**Verificar:**
+
+```bash
 docker stack services kestra
 ```
 
-> Nota: não corras `docker compose up` ao mesmo tempo no mesmo host — vais ter conflito de portas (8080/8081).
+Aceder à UI: **http://\<IP-do-manager\>:8080**  
+MinIO Console: **http://\<IP-do-manager\>:9001**
 
-## Como gerar a imagem do fork (com plugins)
-
-No código do Kestra (pasta `kestra/`), já existe script para buildar a imagem com plugins open-source instalados:
+**Parar a stack:**
 
 ```bash
-cd kestra
-./build-docker-with-plugins.sh creeai/kestra:local
+docker stack rm kestra
 ```
 
-No Windows:
+---
+
+## 3. Subir com um único container (docker run)
+
+Modo rápido, só Kestra (sem Postgres/Redis no compose). Usa H2 em modo local.
+
+**Linux / macOS:**
+
+```bash
+docker run --pull=always -it -p 8080:8080 --user=root \
+  --name kestra --restart=always \
+  -v kestra_data:/app/storage \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/tmp \
+  kestra/kestra:latest server local
+```
+
+**Windows (PowerShell):**
 
 ```powershell
-cd c:\Users\micha\Desktop\Kestra\kestra
-.\build-docker-with-plugins.ps1
+docker run --pull=always -it -p 8080:8080 --user=root `
+  --name kestra --restart=always `
+  -v "kestra_data:/app/storage" `
+  -v "/var/run/docker.sock:/var/run/docker.sock" `
+  -v "C:/Temp:/tmp" `
+  kestra/kestra:latest server local
 ```
 
-O script:
+Para usar a **imagem do fork** (depois de a construíres): substituir `kestra/kestra:latest` por `creeai/kestra:local`.
 
-- Compila o JAR executável
-- Monta `docker/app/kestra`
-- Faz `docker build` usando `kestra/Dockerfile`
-- (Opcional) instala plugins OSS dentro da imagem via `kestra plugins install`
+Aceder à UI: **http://localhost:8080**
 
-## Segurança (importante)
+---
 
-- **Não commits** chaves (OpenAI, Slack webhooks, tokens). O GitHub pode bloquear push (push protection).
-- Para API keys, prefere:
-  - `docker compose` + ficheiro local não versionado, ou
-  - Docker secrets, ou
-  - variáveis no ambiente do host (sem commitar no repo).
+## 4. Parar a aplicação
 
+**Docker Compose:**
+
+```bash
+docker compose down
+```
+
+**Docker Swarm:**
+
+```bash
+docker stack rm kestra
+```
+
+**Container único (docker run):**
+
+```bash
+docker stop kestra
+docker rm kestra
+```
+
+---
+
+## 5. O que sobe em cada modo
+
+| Modo | Postgres | Redis | MinIO | Kestra |
+|------|----------|-------|-------|--------|
+| **Docker Compose** | ✅ | ✅ | ✅ | ✅ |
+| **Docker Swarm (stack-complete.yml)** | ✅ | ✅ | ✅ | ✅ |
+| **docker run (server local)** | ❌ (usa H2) | ❌ | ❌ | ✅ |
+
+---
+
+## 6. Referência: Kestra original
+
+- Docker Compose oficial: `https://raw.githubusercontent.com/kestra-io/kestra/develop/docker-compose.yml`
+- Instalação oficial: https://kestra.io/docs/installation
+
+Este fork mantém a mesma lógica de deploy; os ficheiros estão em **https://github.com/creeai/kestra**.

@@ -2,11 +2,29 @@
 
 Fork do [Kestra](https://kestra.io) com equivalentes OSS de funcionalidades Enterprise e documentação de implementação.
 
-**Repositório da aplicação:** [https://github.com/creeai/kestra](https://github.com/creeai/kestra)
+**Repositório:** [https://github.com/creeai/kestra](https://github.com/creeai/kestra)
 
-## Deploy (produção)
+---
 
-- **Guia de deploy**: **[`DEPLOY.md`](./DEPLOY.md)** (Compose/Swarm + build da imagem do fork)
+## Subir a aplicação (igual ao Kestra original)
+
+**Linux / macOS:**
+
+```bash
+curl -o docker-compose.yml https://raw.githubusercontent.com/creeai/kestra/main/docker-compose.yml
+docker compose up -d
+```
+
+**Windows (PowerShell):**
+
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/creeai/kestra/main/docker-compose.yml" -OutFile "docker-compose.yml"
+docker compose up -d
+```
+
+Aceder à UI: **http://localhost:8080**
+
+Mais opções (Swarm, imagem do fork, docker run): **[DEPLOY.md](./DEPLOY.md)**
 
 ## Documentação do projeto
 
