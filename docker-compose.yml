@@ -42,9 +42,12 @@ services:
       - "9001:9001"
 
   kestra:
-    # Para usar a imagem do fork (RBAC, Audit Logs, etc.): build creeai/kestra:local e troque para image: creeai/kestra:local
-    image: kestra/kestra:latest
-    pull_policy: always
+    # Aplicação modificada (RBAC, Audit Logs, Secrets): build a partir do Dockerfile na raiz
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: jhonatancreeai/kestra:latest
+    pull_policy: if_not_present
     stop_grace_period: 6m
     user: "root"
     command: server standalone

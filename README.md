@@ -6,6 +6,23 @@ Fork do [Kestra](https://kestra.io) com equivalentes OSS de funcionalidades Ente
 
 ---
 
+## Deploy em produção (VPS)
+
+Na VPS, em 4 comandos:
+
+```bash
+git clone --depth 1 --branch main https://github.com/creeai/kestra.git /opt/kestra
+cd /opt/kestra
+docker compose build --no-cache kestra
+docker compose up -d
+```
+
+Aceder à UI: **http://\<IP-DA-VPS\>:8080**
+
+Instruções completas: **[DEPLOY-VPS.md](./DEPLOY-VPS.md)**
+
+---
+
 ## Subir a aplicação (igual ao Kestra original)
 
 **Linux / macOS:**
@@ -30,6 +47,8 @@ Mais opções (Swarm, imagem do fork, docker run): **[DEPLOY.md](./DEPLOY.md)**
 
 | Documento | Descrição |
 |-----------|-----------|
+| **[DEPLOY-VPS.md](./DEPLOY-VPS.md)** | **Deploy em produção na VPS:** passos exatos (clone, build, up). |
+| **[DEPLOY.md](./DEPLOY.md)** | Todas as formas de subir: Compose, Swarm, docker run, publicar imagem. |
 | **[GUIA_IMPLEMENTACAO_ENTERPRISE_KESTRA.md](./GUIA_IMPLEMENTACAO_ENTERPRISE_KESTRA.md)** | Guia de implementação: equivalentes OSS das features Enterprise (Secrets, RBAC, Audit Logs, multi-tenant, maintenance mode, etc.) com referências e caminhos no código. |
 | **[DOCUMENTO_IMPLEMENTACAO_EQUIVALENTES_OSS.md](./DOCUMENTO_IMPLEMENTACAO_EQUIVALENTES_OSS.md)** | Tabela de equivalentes por feature, multi-instância (Docker Swarm + EasyPanel), stacks e runbook. |
 

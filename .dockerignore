@@ -1,0 +1,12 @@
+# Build context: exclude from COPY kestra /
+.git
+.gitignore
+*.md
+!kestra/README.md
+kestra/cli/data
+kestra/build
+kestra/.gradle
+kestra/ui/node_modules
+kestra/ui/dist
+**/*.log
+.DS_Store

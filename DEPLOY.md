@@ -1,9 +1,12 @@
 # Como subir esta aplicação (creeai/kestra)
 
-Comandos para subir a aplicação **igual ao Kestra original**: descarregar ficheiro e correr.  
 Repositório: **https://github.com/creeai/kestra**
 
-O `docker-compose.yml` do repositório usa por defeito **kestra/kestra:latest**, para que **os dois comandos abaixo funcionem logo** (sem precisar de construir imagem). Para usar a **versão do fork** (RBAC, Audit Logs, Secrets UI, etc.), construa a imagem `creeai/kestra:local` e altere no compose a linha da imagem — ver secção **«Usar a imagem do fork»**.
+**Deploy em produção (VPS):** ver **[DEPLOY-VPS.md](./DEPLOY-VPS.md)** — clone do repo, `docker compose build kestra`, `docker compose up -d`. O repositório inclui o `Dockerfile` na raiz e toda a estrutura necessária.
+
+Comandos para subir **igual ao Kestra original** (só ficheiro, sem clone): descarregar `docker-compose.yml` e correr.
+
+O repositório inclui um **Dockerfile** na raiz que constrói a **aplicação modificada** (RBAC, Audit Logs, Secrets UI, etc.). O `docker-compose.yml` está configurado para usar esse build por defeito (`build: .` + `image: jhonatancreeai/kestra:latest`). Para usar só a imagem oficial sem construir, altere o compose para `image: kestra/kestra:latest` e remova ou comente a secção `build:` — ver **«Usar a imagem do fork»**.
 
 ---
 
@@ -58,6 +61,24 @@ Aceder à UI: **http://localhost:8080**
 
 ---
 
+### Subir na VPS com a aplicação modificada (Dockerfile na raiz)
+
+Na VPS, com o repositório clonado (ou com o `Dockerfile` e o `docker-compose.yml` na mesma pasta que a pasta `kestra/`):
+
+```bash
+# Clonar (ou já ter o repo)
+git clone --depth 1 --branch main https://github.com/creeai/kestra.git ~/kestra-app
+cd ~/kestra-app
+
+# Construir a imagem e subir (Postgres, Redis, MinIO, Kestra modificado)
+docker compose build kestra
+docker compose up -d
+```
+
+O **Dockerfile** na raiz faz o build do código em `kestra/` (Gradle + JAR) e produz a imagem. O primeiro build pode demorar vários minutos. Para só levantar os serviços sem reconstruir: `docker compose up -d`.
+
+---
+
 ### Usar a imagem do fork (creeai/kestra:local)
 
 Para correr a **versão modificada** (RBAC, Audit Logs, Secrets, etc.) em vez da imagem oficial:
@@ -84,6 +105,31 @@ docker tag kestra/kestra:1.3.0-with-plugins creeai/kestra:local
 ```
 
 No servidor: descarregar o compose, alterar para `image: creeai/kestra:local` e `pull_policy: if_not_present`, fazer push da imagem para um registry acessível ao servidor (ou construir a imagem no servidor com os comandos Linux acima) e depois `docker compose up -d`.
+
+---
+
+### Publicar a imagem no Docker Hub
+
+Para publicar a versão do fork (RBAC, Audit Logs, Secrets, etc.) no Docker Hub, na **VPS ou na tua máquina** (onde a imagem `creeai/kestra:local` já tiver sido construída):
+
+**Repositório creeai/kestra:**
+```bash
+docker tag creeai/kestra:local creeai/kestra:latest
+docker login
+docker push creeai/kestra:latest
+```
+
+**Repositório jhonatancreeai/kestra (Docker Hub pessoal):**
+```bash
+docker tag creeai/kestra:local jhonatancreeai/kestra:latest
+docker login
+docker push jhonatancreeai/kestra:latest
+```
+
+- **`docker login`** – pede username e password do Docker Hub; faz login no registry.
+- **`docker push`** – envia a imagem para hub.docker.com (ex.: hub.docker.com/r/jhonatancreeai/kestra).
+
+Depois disso, em qualquer máquina podes usar `image: jhonatancreeai/kestra:latest` (ou `creeai/kestra:latest`) no compose com `pull_policy: always` ou `if_not_present`.
 
 ---
 

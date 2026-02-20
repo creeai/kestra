@@ -24,6 +24,6 @@ RUN apt-get update -y && \
 
 USER kestra
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 CMD ["--help"]
