@@ -1,0 +1,129 @@
+# Docker Swarm – Kestra standalone completa (Postgres 18 + Redis + MinIO + Kestra).
+# Aplicação: https://github.com/creeai/kestra  |  Stack em infra/stack-complete.yml
+# Valores fixos na stack; sem ficheiro .env.
+#
+# Pré-requisitos: docker swarm init
+#
+# Deploy: docker stack deploy -c stack-complete.yml kestra
+#
+# Aceder: Kestra http://<IP-do-manager>:8080  |  MinIO Console http://<IP-do-manager>:9001
+#
+# Substitui REPLACE_WITH_YOUR_OPENAI_API_KEY pela tua API key da OpenAI (ou remove o bloco ai se não usares).
+
+version: "3.8"
+
+volumes:
+  postgres-data:
+    driver: local
+  kestra-data:
+    driver: local
+  redis-data:
+    driver: local
+  minio-data:
+    driver: local
+
+services:
+  postgres:
+    image: postgres:18
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: kestra
+      POSTGRES_USER: kestra
+      POSTGRES_PASSWORD: k3str4
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d kestra -U kestra"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    networks:
+      - net
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  redis:
+    image: redis:7
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "@112024"]
+    volumes:
+      - redis-data:/data
+    networks:
+      - net
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: adminminio
+      MINIO_ROOT_PASSWORD: changeme
+    volumes:
+      - minio-data:/data
+    ports:
+      - target: 9000
+        published: 9000
+        mode: host
+      - target: 9001
+        published: 9001
+        mode: host
+    networks:
+      - net
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  kestra:
+    image: kestra/kestra:latest
+    user: "root"
+    stop_grace_period: 6m
+    command: server standalone
+    volumes:
+      - kestra-data:/app/storage
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/kestra-wd:/tmp/kestra-wd
+    environment:
+      KESTRA_CONFIGURATION: |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://postgres:5432/kestra
+            driverClassName: org.postgresql.Driver
+            username: kestra
+            password: k3str4
+        kestra:
+          repository:
+            type: postgres
+          storage:
+            type: local
+            local:
+              base-path: "/app/storage"
+          queue:
+            type: postgres
+          tasks:
+            tmp-dir:
+              path: /tmp/kestra-wd/tmp
+          url: http://localhost:8080/
+          ai:
+            type: openai
+            openai:
+              model-name: gpt-5.2-Thinking
+              api-key: REPLACE_WITH_YOUR_OPENAI_API_KEY
+              base-url: https://api.openai.com/v1
+    ports:
+      - target: 8080
+        published: 8080
+        mode: host
+      - target: 8081
+        published: 8081
+        mode: host
+    networks:
+      - net
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+networks:
+  net:
+    driver: overlay
+    attachable: true
