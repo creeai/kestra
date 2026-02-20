@@ -10,10 +10,10 @@ WORKDIR /workspace
 
 COPY kestra /workspace
 
-# .git ausente no archive do GitHub (ex.: EasyPanel); criar mínimo para o Gradle generateGitProperties
-RUN mkdir -p /workspace/.git/refs/heads && \
-    echo "ref: refs/heads/main" > /workspace/.git/HEAD && \
-    echo "0000000000000000000000000000000000000000" > /workspace/.git/refs/heads/main
+# .git ausente no archive do GitHub (ex.: EasyPanel); criar repo válido para o Gradle generateGitProperties (JGit)
+RUN apt-get update -y && apt-get install -y --no-install-recommends git && apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    git init && git config user.email "build@local" && git config user.name "Build" && \
+    git add -A && (git commit -m "build" || git commit --allow-empty -m "build")
 
 RUN chmod +x gradlew && \
     ./gradlew executableJar --no-daemon
