@@ -1,5 +1,4 @@
-# Build context: exclude from COPY kestra /
-.git
+# Build context (keep .git so Gradle generateGitProperties works in container)
 .gitignore
 *.md
 !kestra/README.md

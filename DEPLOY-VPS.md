@@ -18,12 +18,24 @@ Este documento descreve **exatamente** como colocar a aplicação Kestra (fork c
 
 Executa na VPS, na ordem.
 
-### 1. Clonar o repositório
+### 1. Obter o repositório na VPS
+
+**Se a pasta `/opt/kestra` ainda não existe:**
 
 ```bash
 git clone --depth 1 --branch main https://github.com/creeai/kestra.git /opt/kestra
 cd /opt/kestra
 ```
+
+**Se `/opt/kestra` já existe** (por exemplo de uma instalação anterior):
+
+```bash
+cd /opt/kestra
+git fetch origin main
+git reset --hard origin/main
+```
+
+(Só depois continuar no passo 2.)
 
 ### 2. Construir a imagem da aplicação
 

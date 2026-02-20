@@ -9,6 +9,7 @@ FROM eclipse-temurin:25-jdk-jammy AS builder
 WORKDIR /workspace
 
 COPY kestra /workspace
+COPY .git /workspace/.git
 
 RUN chmod +x gradlew && \
     ./gradlew executableJar --no-daemon
