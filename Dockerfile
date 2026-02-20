@@ -9,7 +9,11 @@ FROM eclipse-temurin:25-jdk-jammy AS builder
 WORKDIR /workspace
 
 COPY kestra /workspace
-COPY .git /workspace/.git
+
+# .git ausente no archive do GitHub (ex.: EasyPanel); criar mínimo para o Gradle generateGitProperties
+RUN mkdir -p /workspace/.git/refs/heads && \
+    echo "ref: refs/heads/main" > /workspace/.git/HEAD && \
+    echo "0000000000000000000000000000000000000000" > /workspace/.git/refs/heads/main
 
 RUN chmod +x gradlew && \
     ./gradlew executableJar --no-daemon
