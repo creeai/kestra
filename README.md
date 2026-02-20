@@ -2,6 +2,12 @@
 
 Fork do [Kestra](https://kestra.io) com equivalentes OSS de funcionalidades Enterprise e documentação de implementação.
 
+**Repositório da aplicação:** [https://github.com/creeai/kestra](https://github.com/creeai/kestra)
+
+## Deploy (produção)
+
+- **Guia de deploy**: **[`DEPLOY.md`](./DEPLOY.md)** (Compose/Swarm + build da imagem do fork)
+
 ## Documentação do projeto
 
 | Documento | Descrição |
